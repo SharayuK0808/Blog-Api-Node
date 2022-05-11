@@ -3,8 +3,10 @@ let server:any;
 const request=require('supertest');
 const {Blog}=require('../../models/blog');
 const {User}=require('../../models/user');
+const mongoose=require('mongoose');
 describe('/blog',()=>{
-    beforeEach(()=>{server=require('../../index')});
+    beforeEach(()=>{
+        server=require('../../index')});
     afterEach(async()=>{
         await Blog.remove({});
         await server.close()});
@@ -120,7 +122,79 @@ describe('/blog',()=>{
             expect(res.status).toBe(200);
         })
     })
-
-    
-
 })
+
+
+describe("DELETE /:id", () => {
+        let token: any;
+        let blog: any;
+        let id: any;
+    
+        const execute = async () => {
+          return  request(server)
+            .delete("/blog/deleteBlog/" + id)
+            .set("x-auth-token", token)
+            .send()
+        };
+    
+        beforeEach(async () => {
+          blog = new Blog({
+            title: "Node Course",
+            author: "XYZ",
+            content:"Hello.",
+          });
+          await blog.save();
+    
+          id = blog._id;
+          token = new User({ isAdmin: true }).generateAuthToken();
+        });
+    
+        it("should return 401 if client is not logged in", async () => {
+          token = "";
+    
+          const res = await execute();
+    
+          expect(res.status).toBe(401);
+        });
+    
+        it("should return 403 if the user is not an admin", async () => {
+          token = new User().generateAuthToken();
+        
+          const res = await execute();
+    
+          expect(res.status).toBe(403);
+        });
+    
+        it("should return 404 if id is invalid", async () => {
+          id = 1;
+    
+          const res = await execute();
+    
+          expect(res.status).toBe(404);
+        });
+    
+        it("should return 404 if no blog with the given id was found", async () => {
+          id = mongoose.Types.ObjectId();
+    
+          const res = await execute();
+    
+          expect(res.status).toBe(404);
+        });
+    
+        it("should delete the blog if input is valid", async () => {
+          await execute();
+    
+          const blogInDb = await Blog.findById(id);
+    
+          expect(blogInDb).toBeNull();
+        });
+    
+        it("should return the removed blog", async () => {
+          const res = await execute();
+    
+          expect(res.body).toHaveProperty("_id", blog._id.toHexString());
+          expect(res.body).toHaveProperty("title", blog.title);
+          expect(res.body).toHaveProperty("author", blog.author);
+          expect(res.body).toHaveProperty("content", blog.content);
+        });
+      });

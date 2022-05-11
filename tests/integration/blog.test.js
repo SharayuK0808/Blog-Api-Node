@@ -13,8 +13,11 @@ let server;
 const request = require('supertest');
 const { Blog } = require('../../models/blog');
 const { User } = require('../../models/user');
+const mongoose = require('mongoose');
 describe('/blog', () => {
-    beforeEach(() => { server = require('../../index'); });
+    beforeEach(() => {
+        server = require('../../index');
+    });
     afterEach(() => __awaiter(void 0, void 0, void 0, function* () {
         yield Blog.remove({});
         yield server.close();
@@ -119,4 +122,57 @@ describe('/blog', () => {
             expect(res.status).toBe(200);
         }));
     });
+});
+describe("DELETE /:id", () => {
+    let token;
+    let blog;
+    let id;
+    const execute = () => __awaiter(void 0, void 0, void 0, function* () {
+        return request(server)
+            .delete("/blog/deleteBlog/" + id)
+            .set("x-auth-token", token)
+            .send();
+    });
+    beforeEach(() => __awaiter(void 0, void 0, void 0, function* () {
+        blog = new Blog({
+            title: "Node Course",
+            author: "XYZ",
+            content: "Hello.",
+        });
+        yield blog.save();
+        id = blog._id;
+        token = new User({ isAdmin: true }).generateAuthToken();
+    }));
+    it("should return 401 if client is not logged in", () => __awaiter(void 0, void 0, void 0, function* () {
+        token = "";
+        const res = yield execute();
+        expect(res.status).toBe(401);
+    }));
+    it("should return 403 if the user is not an admin", () => __awaiter(void 0, void 0, void 0, function* () {
+        token = new User().generateAuthToken();
+        const res = yield execute();
+        expect(res.status).toBe(403);
+    }));
+    it("should return 404 if id is invalid", () => __awaiter(void 0, void 0, void 0, function* () {
+        id = 1;
+        const res = yield execute();
+        expect(res.status).toBe(404);
+    }));
+    it("should return 404 if no blog with the given id was found", () => __awaiter(void 0, void 0, void 0, function* () {
+        id = mongoose.Types.ObjectId();
+        const res = yield execute();
+        expect(res.status).toBe(404);
+    }));
+    it("should delete the blog if input is valid", () => __awaiter(void 0, void 0, void 0, function* () {
+        yield execute();
+        const blogInDb = yield Blog.findById(id);
+        expect(blogInDb).toBeNull();
+    }));
+    it("should return the removed blog", () => __awaiter(void 0, void 0, void 0, function* () {
+        const res = yield execute();
+        expect(res.body).toHaveProperty("_id", blog._id.toHexString());
+        expect(res.body).toHaveProperty("title", blog.title);
+        expect(res.body).toHaveProperty("author", blog.author);
+        expect(res.body).toHaveProperty("content", blog.content);
+    }));
 });

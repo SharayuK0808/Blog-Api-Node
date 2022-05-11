@@ -38,13 +38,12 @@ router.put('/:id',validateObjId,async(req:any,res:any) => {           //PUT
 
 })
 
-router.delete('/:id',[auth,admin,validateObjId],async(req:any,res:any) => {    //DELETE
+router.delete('/deleteBlog/:id',[auth,admin,validateObjId],async(req:any,res:any) => { 
+       //DELETE
+
     const blog=await Blog.findByIdAndRemove(req.params.id);
-        if(!blog) {
-            res.status(404).send('Blog with given Id is NOT FOUND.');
-        return;
-        }
-        res.send(blog);
+        if(!blog) return res.status(404).send('cannot fing blog');
+         res.status(200).send(blog);
 })
 
 router.post('/comment',async(req:any,res:any)=>{                            // POST
@@ -70,16 +69,16 @@ router.post('/comment',async(req:any,res:any)=>{                            // P
       res.status(200).send("Comment added successfully");
 });
 
-router.delete("/comment/:id",validateObjId, async (req: any, res: any) => {
+router.delete("/delete/comment/:id",validateObjId, async (req: any, res: any) => {
 
       const blog = await Blog.updateOne(
         { _id: req.body.blogId },
         { $pull: { comments: { _id: { $eq: req.params.id } } } }
       );
-
+    console.log('Hereeeeeee');
       if (!blog) return res.status(404).send("Not found");
       res.status(200).send(blog);
-   
+    
     }
   );
 module.exports =router;
