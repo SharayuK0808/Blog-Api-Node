@@ -7,6 +7,7 @@ const mongoose=require('mongoose');
 describe('/blog',()=>{
     beforeEach(()=>{
         server=require('../../index')});
+
     afterEach(async()=>{
         await Blog.remove({});
         await server.close()});
@@ -17,7 +18,7 @@ describe('/blog',()=>{
                 author:'Sushil P',
                 content:'abc xuz'});
         }
-    describe('/get',()=>
+    describe('/GET',()=>
     {
         it('should return all blogs',async()=>{
 
@@ -36,7 +37,7 @@ describe('/blog',()=>{
         })
     })
 
-    describe('/get/:id',()=>{
+    describe('/GET/:id',()=>{
         it('should return a blog if given id is valid',async()=>{
             const blog=new Blog({
                 title:'Node Js',
@@ -56,7 +57,7 @@ describe('/blog',()=>{
        
     })
 
-    describe('/post',()=>{
+    describe('/POST',()=>{
         beforeEach(()=>{
              token=new User().generateAuthToken();
         })
@@ -86,7 +87,7 @@ describe('/blog',()=>{
         })
     })
 
-    describe('/put/:id',()=>{
+    describe('/PUT/:id',()=>{
         it('should return 404 if valid Id is not provided',async()=>{
             const res=await request(server).put('/blog/1');
             expect(res.status).toBe(404);
@@ -111,90 +112,135 @@ describe('/blog',()=>{
         })
     })
     
-    describe('POST/comment',()=>{
-        it('should return 200 if comment added successfully',async()=>{
-            const blog=createBlog();
-            await blog.save();
-            const res=await request(server)
-                      .post('/blog/comment')
-                      .send({id:blog._id})
+    describe("DELETE /:id", () => {
+    let token: any;
+    let blog: any;
+    let id: any;
 
+    const execute = async () => {
+      return  request(server)
+        .delete("/blog/deleteBlog/" + id)
+        .set("x-auth-token", token)
+        .send()
+    };
+
+    beforeEach(async () => {
+      blog = new Blog({
+        title: "Node Course",
+        author: "XYZ",
+        content:"Hello.",
+      });
+      await blog.save();
+      id = blog._id;
+      token = new User({ isAdmin: true }).generateAuthToken();
+    });
+
+    it("should return 401 if client is not logged in", async () => {
+      token = "";
+      const res = await execute();
+      expect(res.status).toBe(401);
+    });
+
+    it("should return 403 if the user is not an admin", async () => {
+      token = new User().generateAuthToken();
+      const res = await execute();
+      expect(res.status).toBe(403);
+    });
+
+    it("should return 404 if id is invalid", async () => {
+      id = 1;
+      const res = await execute();
+      expect(res.status).toBe(404);
+    });
+
+    it("should return 404 if no blog with the given id was found", async () => {
+      id = mongoose.Types.ObjectId();
+      const res = await execute();
+      expect(res.status).toBe(404);
+    });
+
+    it("should delete the blog if input is valid", async () => {
+      await execute();
+      const blogInDb = await Blog.findById(id);
+      expect(blogInDb).toBeNull();
+    });
+
+    it("should return the removed blog", async () => {
+      const res = await execute();
+      expect(res.body).toHaveProperty("_id", blog._id.toHexString());
+      expect(res.body).toHaveProperty("title", blog.title);
+      expect(res.body).toHaveProperty("author", blog.author);
+      expect(res.body).toHaveProperty("content", blog.content);
+    });
+
+  });
+
+    
+    describe('POST/comment',()=>{
+
+        let blog:any,token:any;
+        const postCommentReq=()=>{
+            return request(server)
+            .post('/blog/comment')
+            .set('x-auth-token',token)
+            .send({id:blog._id,content:'abc'})
+        }
+        it('should return 401 if client is not logged in',async()=>{
+             token="";
+            blog=createBlog();
+            await blog.save();
+            const res=await postCommentReq();
+            expect(res.status).toBe(401);
+            
+        })
+        it('should return 200 if comment added successfully',async()=>{
+             token=new User().generateAuthToken();
+             blog=createBlog();
+            await blog.save();
+            const res=await postCommentReq();
             expect(res.status).toBe(200);
+        })
+    })
+
+    describe('DELETE/comment/:id',()=>{
+
+        let commendId:any,blogId:any,blog:any,token:any;
+        beforeEach(async()=>{
+             blog=new Blog({
+                title:'React Course',
+                author:'Mosh',
+                content:'Abc ABC',
+                comments:[{comment_content:'Nice'}],
+            })
+            await blog.save();
+            blogId=blog._id;
+            token=new User().generateAuthToken();
+        })
+        const delReq=async()=>{
+            return  request(server)
+                    .delete('/blog/delete/comment/'+commendId)
+                    .set('x-auth-token',token)
+                    .send({blogId:blog._id});
+
+        }
+        it('should return 401 if client is not logged in',async()=>{
+            token="";
+            const res=await delReq();
+            expect(res.status).toBe(401);
+        })
+        it('should return 404 if id is invalid',async()=>{
+            commendId='1';
+            const res=await delReq();
+            expect(res.status).toBe(404);
+        })
+        it('should return 200 if valid Id is provided',async()=>{
+    
+            commendId=blog.comments[0]._id;
+           const res=await delReq();
+            expect(res.status).toBe(200);
+    
         })
     })
 })
 
 
-describe("DELETE /:id", () => {
-        let token: any;
-        let blog: any;
-        let id: any;
-    
-        const execute = async () => {
-          return  request(server)
-            .delete("/blog/deleteBlog/" + id)
-            .set("x-auth-token", token)
-            .send()
-        };
-    
-        beforeEach(async () => {
-          blog = new Blog({
-            title: "Node Course",
-            author: "XYZ",
-            content:"Hello.",
-          });
-          await blog.save();
-    
-          id = blog._id;
-          token = new User({ isAdmin: true }).generateAuthToken();
-        });
-    
-        it("should return 401 if client is not logged in", async () => {
-          token = "";
-    
-          const res = await execute();
-    
-          expect(res.status).toBe(401);
-        });
-    
-        it("should return 403 if the user is not an admin", async () => {
-          token = new User().generateAuthToken();
-        
-          const res = await execute();
-    
-          expect(res.status).toBe(403);
-        });
-    
-        it("should return 404 if id is invalid", async () => {
-          id = 1;
-    
-          const res = await execute();
-    
-          expect(res.status).toBe(404);
-        });
-    
-        it("should return 404 if no blog with the given id was found", async () => {
-          id = mongoose.Types.ObjectId();
-    
-          const res = await execute();
-    
-          expect(res.status).toBe(404);
-        });
-    
-        it("should delete the blog if input is valid", async () => {
-          await execute();
-    
-          const blogInDb = await Blog.findById(id);
-    
-          expect(blogInDb).toBeNull();
-        });
-    
-        it("should return the removed blog", async () => {
-          const res = await execute();
-    
-          expect(res.body).toHaveProperty("_id", blog._id.toHexString());
-          expect(res.body).toHaveProperty("title", blog.title);
-          expect(res.body).toHaveProperty("author", blog.author);
-          expect(res.body).toHaveProperty("content", blog.content);
-        });
-      });

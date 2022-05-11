@@ -41,13 +41,12 @@ router.put('/:id', validateObjId, (req, res) => __awaiter(void 0, void 0, void 0
     res.status(200).send(blog);
 }));
 router.delete('/deleteBlog/:id', [auth, admin, validateObjId], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    //DELETE
     const blog = yield Blog.findByIdAndRemove(req.params.id);
     if (!blog)
         return res.status(404).send('cannot fing blog');
     res.status(200).send(blog);
 }));
-router.post('/comment', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post('/comment', auth, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const _id = req.body.id;
     if (!mongoose.Types.ObjectId.isValid(_id))
         return res.status(404).send('Invalid Id');
@@ -55,10 +54,7 @@ router.post('/comment', (req, res) => __awaiter(void 0, void 0, void 0, function
     if (!blog)
         return res.status(404).send("Blog with given id is not found");
     var currentdate = new Date();
-    var datetime = currentdate.getDay() + "/" + currentdate.getMonth()
-        + "/" + currentdate.getFullYear() + " @ "
-        + currentdate.getHours() + ":"
-        + currentdate.getMinutes() + ":" + currentdate.getSeconds();
+    var datetime = currentdate.toDateString() + ":" + currentdate.toTimeString();
     yield blog.comments.push({
         comment_content: req.body.content,
         time_posted: datetime,
@@ -66,9 +62,8 @@ router.post('/comment', (req, res) => __awaiter(void 0, void 0, void 0, function
     yield blog.save();
     res.status(200).send("Comment added successfully");
 }));
-router.delete("/delete/comment/:id", validateObjId, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.delete("/delete/comment/:id", [auth, validateObjId], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const blog = yield Blog.updateOne({ _id: req.body.blogId }, { $pull: { comments: { _id: { $eq: req.params.id } } } });
-    console.log('Hereeeeeee');
     if (!blog)
         return res.status(404).send("Not found");
     res.status(200).send(blog);

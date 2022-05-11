@@ -39,14 +39,13 @@ router.put('/:id',validateObjId,async(req:any,res:any) => {           //PUT
 })
 
 router.delete('/deleteBlog/:id',[auth,admin,validateObjId],async(req:any,res:any) => { 
-       //DELETE
 
     const blog=await Blog.findByIdAndRemove(req.params.id);
         if(!blog) return res.status(404).send('cannot fing blog');
          res.status(200).send(blog);
 })
 
-router.post('/comment',async(req:any,res:any)=>{                            // POST
+router.post('/comment',auth,async(req:any,res:any)=>{                            // POST
     
     const  _id = req.body.id;
     if(!mongoose.Types.ObjectId.isValid(_id))
@@ -56,10 +55,7 @@ router.post('/comment',async(req:any,res:any)=>{                            // P
     if(!blog) return res.status(404).send("Blog with given id is not found");
 
     var currentdate = new Date();
-    var datetime =currentdate.getDay() + "/" + currentdate.getMonth() 
-    + "/" + currentdate.getFullYear() + " @ " 
-    + currentdate.getHours() + ":" 
-    + currentdate.getMinutes() + ":" + currentdate.getSeconds();
+    var datetime = currentdate.toDateString() + ":" + currentdate.toTimeString();
     
     await blog.comments.push({
         comment_content: req.body.content,
@@ -69,13 +65,12 @@ router.post('/comment',async(req:any,res:any)=>{                            // P
       res.status(200).send("Comment added successfully");
 });
 
-router.delete("/delete/comment/:id",validateObjId, async (req: any, res: any) => {
+router.delete("/delete/comment/:id",[auth,validateObjId], async (req: any, res: any) => {
 
       const blog = await Blog.updateOne(
         { _id: req.body.blogId },
         { $pull: { comments: { _id: { $eq: req.params.id } } } }
       );
-    console.log('Hereeeeeee');
       if (!blog) return res.status(404).send("Not found");
       res.status(200).send(blog);
     

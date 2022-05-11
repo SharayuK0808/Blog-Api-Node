@@ -29,7 +29,7 @@ describe('/blog', () => {
             content: 'abc xuz'
         });
     };
-    describe('/get', () => {
+    describe('/GET', () => {
         it('should return all blogs', () => __awaiter(void 0, void 0, void 0, function* () {
             yield Blog.collection.insertMany([
                 { title: 'abcd',
@@ -45,7 +45,7 @@ describe('/blog', () => {
             expect(res.status).toBe(200);
         }));
     });
-    describe('/get/:id', () => {
+    describe('/GET/:id', () => {
         it('should return a blog if given id is valid', () => __awaiter(void 0, void 0, void 0, function* () {
             const blog = new Blog({
                 title: 'Node Js',
@@ -62,7 +62,7 @@ describe('/blog', () => {
             expect(res.status).toBe(404);
         }));
     });
-    describe('/post', () => {
+    describe('/POST', () => {
         beforeEach(() => {
             token = new User().generateAuthToken();
         });
@@ -89,7 +89,7 @@ describe('/blog', () => {
             expect(blog).not.toBeNull();
         }));
     });
-    describe('/put/:id', () => {
+    describe('/PUT/:id', () => {
         it('should return 404 if valid Id is not provided', () => __awaiter(void 0, void 0, void 0, function* () {
             const res = yield request(server).put('/blog/1');
             expect(res.status).toBe(404);
@@ -112,67 +112,115 @@ describe('/blog', () => {
             expect(blog2).not.toBeNull();
         }));
     });
-    describe('POST/comment', () => {
-        it('should return 200 if comment added successfully', () => __awaiter(void 0, void 0, void 0, function* () {
-            const blog = createBlog();
+    describe("DELETE /:id", () => {
+        let token;
+        let blog;
+        let id;
+        const execute = () => __awaiter(void 0, void 0, void 0, function* () {
+            return request(server)
+                .delete("/blog/deleteBlog/" + id)
+                .set("x-auth-token", token)
+                .send();
+        });
+        beforeEach(() => __awaiter(void 0, void 0, void 0, function* () {
+            blog = new Blog({
+                title: "Node Course",
+                author: "XYZ",
+                content: "Hello.",
+            });
             yield blog.save();
-            const res = yield request(server)
+            id = blog._id;
+            token = new User({ isAdmin: true }).generateAuthToken();
+        }));
+        it("should return 401 if client is not logged in", () => __awaiter(void 0, void 0, void 0, function* () {
+            token = "";
+            const res = yield execute();
+            expect(res.status).toBe(401);
+        }));
+        it("should return 403 if the user is not an admin", () => __awaiter(void 0, void 0, void 0, function* () {
+            token = new User().generateAuthToken();
+            const res = yield execute();
+            expect(res.status).toBe(403);
+        }));
+        it("should return 404 if id is invalid", () => __awaiter(void 0, void 0, void 0, function* () {
+            id = 1;
+            const res = yield execute();
+            expect(res.status).toBe(404);
+        }));
+        it("should return 404 if no blog with the given id was found", () => __awaiter(void 0, void 0, void 0, function* () {
+            id = mongoose.Types.ObjectId();
+            const res = yield execute();
+            expect(res.status).toBe(404);
+        }));
+        it("should delete the blog if input is valid", () => __awaiter(void 0, void 0, void 0, function* () {
+            yield execute();
+            const blogInDb = yield Blog.findById(id);
+            expect(blogInDb).toBeNull();
+        }));
+        it("should return the removed blog", () => __awaiter(void 0, void 0, void 0, function* () {
+            const res = yield execute();
+            expect(res.body).toHaveProperty("_id", blog._id.toHexString());
+            expect(res.body).toHaveProperty("title", blog.title);
+            expect(res.body).toHaveProperty("author", blog.author);
+            expect(res.body).toHaveProperty("content", blog.content);
+        }));
+    });
+    describe('POST/comment', () => {
+        let blog, token;
+        const postCommentReq = () => {
+            return request(server)
                 .post('/blog/comment')
-                .send({ id: blog._id });
+                .set('x-auth-token', token)
+                .send({ id: blog._id, content: 'abc' });
+        };
+        it('should return 401 if client is not logged in', () => __awaiter(void 0, void 0, void 0, function* () {
+            token = "";
+            blog = createBlog();
+            yield blog.save();
+            const res = yield postCommentReq();
+            expect(res.status).toBe(401);
+        }));
+        it('should return 200 if comment added successfully', () => __awaiter(void 0, void 0, void 0, function* () {
+            token = new User().generateAuthToken();
+            blog = createBlog();
+            yield blog.save();
+            const res = yield postCommentReq();
             expect(res.status).toBe(200);
         }));
     });
-});
-describe("DELETE /:id", () => {
-    let token;
-    let blog;
-    let id;
-    const execute = () => __awaiter(void 0, void 0, void 0, function* () {
-        return request(server)
-            .delete("/blog/deleteBlog/" + id)
-            .set("x-auth-token", token)
-            .send();
-    });
-    beforeEach(() => __awaiter(void 0, void 0, void 0, function* () {
-        blog = new Blog({
-            title: "Node Course",
-            author: "XYZ",
-            content: "Hello.",
+    describe('DELETE/comment/:id', () => {
+        let commendId, blogId, blog, token;
+        beforeEach(() => __awaiter(void 0, void 0, void 0, function* () {
+            blog = new Blog({
+                title: 'React Course',
+                author: 'Mosh',
+                content: 'Abc ABC',
+                comments: [{ comment_content: 'Nice' }],
+            });
+            yield blog.save();
+            blogId = blog._id;
+            token = new User().generateAuthToken();
+        }));
+        const delReq = () => __awaiter(void 0, void 0, void 0, function* () {
+            return request(server)
+                .delete('/blog/delete/comment/' + commendId)
+                .set('x-auth-token', token)
+                .send({ blogId: blog._id });
         });
-        yield blog.save();
-        id = blog._id;
-        token = new User({ isAdmin: true }).generateAuthToken();
-    }));
-    it("should return 401 if client is not logged in", () => __awaiter(void 0, void 0, void 0, function* () {
-        token = "";
-        const res = yield execute();
-        expect(res.status).toBe(401);
-    }));
-    it("should return 403 if the user is not an admin", () => __awaiter(void 0, void 0, void 0, function* () {
-        token = new User().generateAuthToken();
-        const res = yield execute();
-        expect(res.status).toBe(403);
-    }));
-    it("should return 404 if id is invalid", () => __awaiter(void 0, void 0, void 0, function* () {
-        id = 1;
-        const res = yield execute();
-        expect(res.status).toBe(404);
-    }));
-    it("should return 404 if no blog with the given id was found", () => __awaiter(void 0, void 0, void 0, function* () {
-        id = mongoose.Types.ObjectId();
-        const res = yield execute();
-        expect(res.status).toBe(404);
-    }));
-    it("should delete the blog if input is valid", () => __awaiter(void 0, void 0, void 0, function* () {
-        yield execute();
-        const blogInDb = yield Blog.findById(id);
-        expect(blogInDb).toBeNull();
-    }));
-    it("should return the removed blog", () => __awaiter(void 0, void 0, void 0, function* () {
-        const res = yield execute();
-        expect(res.body).toHaveProperty("_id", blog._id.toHexString());
-        expect(res.body).toHaveProperty("title", blog.title);
-        expect(res.body).toHaveProperty("author", blog.author);
-        expect(res.body).toHaveProperty("content", blog.content);
-    }));
+        it('should return 401 if client is not logged in', () => __awaiter(void 0, void 0, void 0, function* () {
+            token = "";
+            const res = yield delReq();
+            expect(res.status).toBe(401);
+        }));
+        it('should return 404 if id is invalid', () => __awaiter(void 0, void 0, void 0, function* () {
+            commendId = '1';
+            const res = yield delReq();
+            expect(res.status).toBe(404);
+        }));
+        it('should return 200 if valid Id is provided', () => __awaiter(void 0, void 0, void 0, function* () {
+            commendId = blog.comments[0]._id;
+            const res = yield delReq();
+            expect(res.status).toBe(200);
+        }));
+    });
 });

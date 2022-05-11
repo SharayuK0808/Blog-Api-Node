@@ -8,8 +8,9 @@ const blog = require('./routes/blog');
 const auth = require('./routes/auth');
 const config = require('config');
 mongoose.connect(config.get('db'))
-    .then(() => console.log(`Connected to ${config.get('db')}`))
+    .then(() => { console.log(`Connected to ${config.get('db')}`); })
     .catch(() => console.log("Couldnt Connect"));
+console.log(new Date());
 app.use(express.json());
 app.use('/user', user);
 app.use('/blog', blog);
