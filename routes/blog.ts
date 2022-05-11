@@ -4,55 +4,56 @@ const router= express.Router();
 const {Blog}=require('../models/blog')
 const auth=require('../middleware/auth');
 const mongoose=require('mongoose');
+const admin=require('../middleware/admin');
+const validateObjId=require('../middleware/validateObjId');
 
-router.get('/',auth,async(req:any,res:any)=> {
+router.get('/',async(req:any,res:any)=> {
     const blogs=await Blog.find();
     res.send(blogs);
    
 })
 
-router.get('/:id',async(req:any,res:any)=>{
-
+router.get('/:id',validateObjId,async(req:any,res:any)=>{
+ 
     const blog=await Blog.findById(req.params.id);
     if(!blog)res.status(400).send('Blog with given ID not found');
     res.send(blog);
 })
 
-router.post('/',async(req:any,res:any)=>{                            // POST
-    
+router.post('/',auth,async(req:any,res:any)=>{                            // POST
     const { title,content, author,published} = req.body;
-    console.log(title,content, author,published);
     let blog=new Blog({title,content,author,published});
     blog=await blog.save();
-    res.send(blog);
+    res.status(200).send(blog);
 });
 
-router.put('/:id',async(req:any,res:any) => {           //PUT
+router.put('/:id',validateObjId,async(req:any,res:any) => {           //PUT
 
      const blog=await Blog.findByIdAndUpdate(req.params.id,{title:req.body.title,content:req.body.content},{new:true})
         if(!blog) {
-            res.status(404).send('Blog with given is NOT FOUND.');
+            res.status(404).send('Blog with given ID is not found.');
         return;
         }
-        res.send(blog);
+        res.status(200).send(blog);
 
 })
 
-router.delete('/:id',async(req:any,res:any) => {    //DELETE
+router.delete('/:id',[auth,admin,validateObjId],async(req:any,res:any) => {    //DELETE
     const blog=await Blog.findByIdAndRemove(req.params.id);
         if(!blog) {
-            res.status(404).send('Blog with given is NOT FOUND.');
+            res.status(404).send('Blog with given Id is NOT FOUND.');
         return;
         }
         res.send(blog);
 })
 
-router.post('/addComment',async(req:any,res:any)=>{                            // POST
+router.post('/comment',async(req:any,res:any)=>{                            // POST
     
     const  _id = req.body.id;
-    console.log(_id);
+    if(!mongoose.Types.ObjectId.isValid(_id))
+    return res.status(404).send('Invalid Id');
+
     let blog=await Blog.findById(_id)
-    console.log(blog);
     if(!blog) return res.status(404).send("Blog with given id is not found");
 
     var currentdate = new Date();
@@ -66,22 +67,16 @@ router.post('/addComment',async(req:any,res:any)=>{                            /
         time_posted: datetime,
       });
       await blog.save();
-      console.log(blog.comments.comment_content,req.body.content);
       res.status(200).send("Comment added successfully");
 });
 
+router.delete("/comment/:id",validateObjId, async (req: any, res: any) => {
 
-router.delete("/delete/Comment", async (req: any, res: any) => {
-
-    console.log(req.body);
-   
-    
-    console.log(req.body.commentId,req.body.blogId);
       const blog = await Blog.updateOne(
         { _id: req.body.blogId },
-        { $pull: { comments: { _id: { $eq: req.body.commentId } } } }
+        { $pull: { comments: { _id: { $eq: req.params.id } } } }
       );
-    //   await blog.save();
+
       if (!blog) return res.status(404).send("Not found");
       res.status(200).send(blog);
    

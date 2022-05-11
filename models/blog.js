@@ -10,18 +10,25 @@ exports.Blog = mongoose_1.default.model("Blog", new mongoose_1.default.Schema({
         type: String,
         required: true,
         minlength: 4,
+        maxlength: 30
     },
     content: {
         type: String,
+        minlength: 5,
+        maxlength: 1000,
         required: true
     },
     author: {
         type: String,
+        minlength: 3,
+        maxlength: 10,
         required: true
     },
     comments: [{
             comment_content: {
                 type: String,
+                minlength: 2,
+                maxlength: 40
             },
             time_posted: {
                 type: String,
@@ -31,7 +38,7 @@ exports.Blog = mongoose_1.default.model("Blog", new mongoose_1.default.Schema({
         type: Boolean,
         default: false
     },
-    timestamp: {
+    time_posted: {
         type: Date,
         default: Date.now
     },

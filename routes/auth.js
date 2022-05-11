@@ -17,17 +17,15 @@ const _ = require('lodash');
 const bcrypt = require('bcrypt');
 const Joi = require('Joi');
 const jwt = require('jsonwebtoken');
-// const config=require('config');
 router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     let user = yield User.findOne({ email: req.body.email });
     if (!user) {
-        return res.status(400).send('Invalid Login');
+        return res.status(400).send('Invalid Login!');
     }
-    const ans = yield bcrypt.compare(req.body.password, user.password);
-    if (!ans)
-        res.send("Invalid password");
+    const isValid = yield bcrypt.compare(req.body.password, user.password);
+    if (!isValid)
+        res.send("Invalid Email or Password!");
     const token = user.generateAuthToken();
-    console.log(token);
     res.send(token);
 }));
 module.exports = router;

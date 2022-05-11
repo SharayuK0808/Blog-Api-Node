@@ -30,7 +30,6 @@ router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         password: req.body.password
     });
     const salt = yield bcrypt.genSalt(10);
-    console.log(salt);
     user.password = yield bcrypt.hash(user.password, salt);
     user = yield user.save();
     const token = user.generateAuthToken();
