@@ -30,7 +30,7 @@ router.post('/', auth, (req, res) => __awaiter(void 0, void 0, void 0, function*
     const { title, content, author, published } = req.body;
     let blog = new Blog({ title, content, author, published });
     blog = yield blog.save();
-    res.status(200).send(blog);
+    res.status(201).send(blog);
 }));
 router.put('/:id', validateObjId, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const blog = yield Blog.findByIdAndUpdate(req.params.id, { title: req.body.title, content: req.body.content }, { new: true });
@@ -40,10 +40,18 @@ router.put('/:id', validateObjId, (req, res) => __awaiter(void 0, void 0, void 0
     }
     res.status(200).send(blog);
 }));
-router.delete('/deleteBlog/:id', [auth, admin, validateObjId], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.delete('/:id', [auth, admin, validateObjId], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const blog = yield Blog.findByIdAndRemove(req.params.id);
     if (!blog)
         return res.status(404).send('cannot fing blog');
+    res.status(200).send(blog);
+}));
+router.patch('/:id', [validateObjId], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const blog = yield Blog.findByIdAndUpdate(req.params.id, { published: req.body.published }, { new: true });
+    if (!blog) {
+        res.status(404).send('Blog with given ID is not found.');
+        return;
+    }
     res.status(200).send(blog);
 }));
 router.post('/comment', auth, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -60,9 +68,9 @@ router.post('/comment', auth, (req, res) => __awaiter(void 0, void 0, void 0, fu
         time_posted: datetime,
     });
     yield blog.save();
-    res.status(200).send("Comment added successfully");
+    res.status(201).send("Comment added successfully");
 }));
-router.delete("/delete/comment/:id", [auth, validateObjId], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.delete("/comment/:id", [auth, validateObjId], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const blog = yield Blog.updateOne({ _id: req.body.blogId }, { $pull: { comments: { _id: { $eq: req.params.id } } } });
     if (!blog)
         return res.status(404).send("Not found");

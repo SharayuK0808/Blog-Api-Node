@@ -17,7 +17,7 @@ const _ = require('lodash');
 const bcrypt = require('bcrypt');
 const Joi = require('Joi');
 const jwt = require('jsonwebtoken');
-router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post('/login', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     let user = yield User.findOne({ email: req.body.email });
     if (!user) {
         return res.status(400).send('Invalid Login!');

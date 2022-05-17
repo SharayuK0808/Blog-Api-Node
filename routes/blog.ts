@@ -24,7 +24,7 @@ router.post('/',auth,async(req:any,res:any)=>{                            // POS
     const { title,content, author,published} = req.body;
     let blog=new Blog({title,content,author,published});
     blog=await blog.save();
-    res.status(200).send(blog);
+    res.status(201).send(blog);
 });
 
 router.put('/:id',validateObjId,async(req:any,res:any) => {           //PUT
@@ -38,13 +38,20 @@ router.put('/:id',validateObjId,async(req:any,res:any) => {           //PUT
 
 })
 
-router.delete('/deleteBlog/:id',[auth,admin,validateObjId],async(req:any,res:any) => { 
+router.delete('/:id',[auth,admin,validateObjId],async(req:any,res:any) => { 
 
     const blog=await Blog.findByIdAndRemove(req.params.id);
         if(!blog) return res.status(404).send('cannot fing blog');
          res.status(200).send(blog);
 })
-
+router.patch('/:id',[validateObjId],async(req:any,res:any)=>{
+    const blog=await Blog.findByIdAndUpdate(req.params.id,{published:req.body.published},{new:true})
+  if(!blog) {
+      res.status(404).send('Blog with given ID is not found.');
+  return;
+  }
+  res.status(200).send(blog);
+})
 router.post('/comment',auth,async(req:any,res:any)=>{                            // POST
     
     const  _id = req.body.id;
@@ -62,10 +69,10 @@ router.post('/comment',auth,async(req:any,res:any)=>{                           
         time_posted: datetime,
       });
       await blog.save();
-      res.status(200).send("Comment added successfully");
+      res.status(201).send("Comment added successfully");
 });
 
-router.delete("/delete/comment/:id",[auth,validateObjId], async (req: any, res: any) => {
+router.delete("/comment/:id",[auth,validateObjId], async (req: any, res: any) => {
 
       const blog = await Blog.updateOne(
         { _id: req.body.blogId },

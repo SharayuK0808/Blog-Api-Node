@@ -8,7 +8,7 @@ const bcrypt=require('bcrypt');
 const Joi=require('Joi');
 const jwt=require('jsonwebtoken');
 
-router.post('/',async(req:any,res:any)=>{                            // POST
+router.post('/login',async(req:any,res:any)=>{                            // POST
     
    let user=await User.findOne({email:req.body.email})
    if(!user) {return res.status(400).send('Invalid Login!');}
